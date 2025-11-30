@@ -1,0 +1,1459 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyM5pa88544UXkzU1/3zYZBl",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/tonycuenca99-hue/ARQUIVOS-IA/blob/main/WEEKLY_REPORT\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "vU1X04Uwz0kk",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "edb35268-bffe-48a3-a50c-1124d240dd22"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Collecting optuna\n",
+            "  Downloading optuna-4.6.0-py3-none-any.whl.metadata (17 kB)\n",
+            "Requirement already satisfied: alembic>=1.5.0 in /usr/local/lib/python3.12/dist-packages (from optuna) (1.17.2)\n",
+            "Collecting colorlog (from optuna)\n",
+            "  Downloading colorlog-6.10.1-py3-none-any.whl.metadata (11 kB)\n",
+            "Requirement already satisfied: numpy in /usr/local/lib/python3.12/dist-packages (from optuna) (2.0.2)\n",
+            "Requirement already satisfied: packaging>=20.0 in /usr/local/lib/python3.12/dist-packages (from optuna) (25.0)\n",
+            "Requirement already satisfied: sqlalchemy>=1.4.2 in /usr/local/lib/python3.12/dist-packages (from optuna) (2.0.44)\n",
+            "Requirement already satisfied: tqdm in /usr/local/lib/python3.12/dist-packages (from optuna) (4.67.1)\n",
+            "Requirement already satisfied: PyYAML in /usr/local/lib/python3.12/dist-packages (from optuna) (6.0.3)\n",
+            "Requirement already satisfied: Mako in /usr/local/lib/python3.12/dist-packages (from alembic>=1.5.0->optuna) (1.3.10)\n",
+            "Requirement already satisfied: typing-extensions>=4.12 in /usr/local/lib/python3.12/dist-packages (from alembic>=1.5.0->optuna) (4.15.0)\n",
+            "Requirement already satisfied: greenlet>=1 in /usr/local/lib/python3.12/dist-packages (from sqlalchemy>=1.4.2->optuna) (3.2.4)\n",
+            "Requirement already satisfied: MarkupSafe>=0.9.2 in /usr/local/lib/python3.12/dist-packages (from Mako->alembic>=1.5.0->optuna) (3.0.3)\n",
+            "Downloading optuna-4.6.0-py3-none-any.whl (404 kB)\n",
+            "\u001b[?25l   \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m0.0/404.7 kB\u001b[0m \u001b[31m?\u001b[0m eta \u001b[36m-:--:--\u001b[0m\r\u001b[2K   \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m404.7/404.7 kB\u001b[0m \u001b[31m19.0 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+            "\u001b[?25hDownloading colorlog-6.10.1-py3-none-any.whl (11 kB)\n",
+            "Installing collected packages: colorlog, optuna\n",
+            "Successfully installed colorlog-6.10.1 optuna-4.6.0\n"
+          ]
+        }
+      ],
+      "source": [
+        "#IMPORTAR BIBLIOTECAS\n",
+        "!pip install optuna\n",
+        "import numpy as np\n",
+        "import pandas as pd\n",
+        "import tensorflow as tf\n",
+        "from tensorflow import keras\n",
+        "from tensorflow.keras import layers\n",
+        "\n",
+        "import optuna\n",
+        "from sklearn.model_selection import train_test_split\n",
+        "from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "#CARREGAR ARCHIVO\n",
+        "from google.colab import files\n",
+        "uploaded = files.upload()"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 71
+        },
+        "id": "rAtDgZhm4XVM",
+        "outputId": "e5a158af-e054-41a0-c3f4-1df251bf9e18"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "<IPython.core.display.HTML object>"
+            ],
+            "text/html": [
+              "\n",
+              "     <input type=\"file\" id=\"files-5c34fb37-e35f-478e-858e-c9b03181b011\" name=\"files[]\" multiple disabled\n",
+              "        style=\"border:none\" />\n",
+              "     <output id=\"result-5c34fb37-e35f-478e-858e-c9b03181b011\">\n",
+              "      Upload widget is only available when the cell has been executed in the\n",
+              "      current browser session. Please rerun this cell to enable.\n",
+              "      </output>\n",
+              "      <script>// Copyright 2017 Google LLC\n",
+              "//\n",
+              "// Licensed under the Apache License, Version 2.0 (the \"License\");\n",
+              "// you may not use this file except in compliance with the License.\n",
+              "// You may obtain a copy of the License at\n",
+              "//\n",
+              "//      http://www.apache.org/licenses/LICENSE-2.0\n",
+              "//\n",
+              "// Unless required by applicable law or agreed to in writing, software\n",
+              "// distributed under the License is distributed on an \"AS IS\" BASIS,\n",
+              "// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n",
+              "// See the License for the specific language governing permissions and\n",
+              "// limitations under the License.\n",
+              "\n",
+              "/**\n",
+              " * @fileoverview Helpers for google.colab Python module.\n",
+              " */\n",
+              "(function(scope) {\n",
+              "function span(text, styleAttributes = {}) {\n",
+              "  const element = document.createElement('span');\n",
+              "  element.textContent = text;\n",
+              "  for (const key of Object.keys(styleAttributes)) {\n",
+              "    element.style[key] = styleAttributes[key];\n",
+              "  }\n",
+              "  return element;\n",
+              "}\n",
+              "\n",
+              "// Max number of bytes which will be uploaded at a time.\n",
+              "const MAX_PAYLOAD_SIZE = 100 * 1024;\n",
+              "\n",
+              "function _uploadFiles(inputId, outputId) {\n",
+              "  const steps = uploadFilesStep(inputId, outputId);\n",
+              "  const outputElement = document.getElementById(outputId);\n",
+              "  // Cache steps on the outputElement to make it available for the next call\n",
+              "  // to uploadFilesContinue from Python.\n",
+              "  outputElement.steps = steps;\n",
+              "\n",
+              "  return _uploadFilesContinue(outputId);\n",
+              "}\n",
+              "\n",
+              "// This is roughly an async generator (not supported in the browser yet),\n",
+              "// where there are multiple asynchronous steps and the Python side is going\n",
+              "// to poll for completion of each step.\n",
+              "// This uses a Promise to block the python side on completion of each step,\n",
+              "// then passes the result of the previous step as the input to the next step.\n",
+              "function _uploadFilesContinue(outputId) {\n",
+              "  const outputElement = document.getElementById(outputId);\n",
+              "  const steps = outputElement.steps;\n",
+              "\n",
+              "  const next = steps.next(outputElement.lastPromiseValue);\n",
+              "  return Promise.resolve(next.value.promise).then((value) => {\n",
+              "    // Cache the last promise value to make it available to the next\n",
+              "    // step of the generator.\n",
+              "    outputElement.lastPromiseValue = value;\n",
+              "    return next.value.response;\n",
+              "  });\n",
+              "}\n",
+              "\n",
+              "/**\n",
+              " * Generator function which is called between each async step of the upload\n",
+              " * process.\n",
+              " * @param {string} inputId Element ID of the input file picker element.\n",
+              " * @param {string} outputId Element ID of the output display.\n",
+              " * @return {!Iterable<!Object>} Iterable of next steps.\n",
+              " */\n",
+              "function* uploadFilesStep(inputId, outputId) {\n",
+              "  const inputElement = document.getElementById(inputId);\n",
+              "  inputElement.disabled = false;\n",
+              "\n",
+              "  const outputElement = document.getElementById(outputId);\n",
+              "  outputElement.innerHTML = '';\n",
+              "\n",
+              "  const pickedPromise = new Promise((resolve) => {\n",
+              "    inputElement.addEventListener('change', (e) => {\n",
+              "      resolve(e.target.files);\n",
+              "    });\n",
+              "  });\n",
+              "\n",
+              "  const cancel = document.createElement('button');\n",
+              "  inputElement.parentElement.appendChild(cancel);\n",
+              "  cancel.textContent = 'Cancel upload';\n",
+              "  const cancelPromise = new Promise((resolve) => {\n",
+              "    cancel.onclick = () => {\n",
+              "      resolve(null);\n",
+              "    };\n",
+              "  });\n",
+              "\n",
+              "  // Wait for the user to pick the files.\n",
+              "  const files = yield {\n",
+              "    promise: Promise.race([pickedPromise, cancelPromise]),\n",
+              "    response: {\n",
+              "      action: 'starting',\n",
+              "    }\n",
+              "  };\n",
+              "\n",
+              "  cancel.remove();\n",
+              "\n",
+              "  // Disable the input element since further picks are not allowed.\n",
+              "  inputElement.disabled = true;\n",
+              "\n",
+              "  if (!files) {\n",
+              "    return {\n",
+              "      response: {\n",
+              "        action: 'complete',\n",
+              "      }\n",
+              "    };\n",
+              "  }\n",
+              "\n",
+              "  for (const file of files) {\n",
+              "    const li = document.createElement('li');\n",
+              "    li.append(span(file.name, {fontWeight: 'bold'}));\n",
+              "    li.append(span(\n",
+              "        `(${file.type || 'n/a'}) - ${file.size} bytes, ` +\n",
+              "        `last modified: ${\n",
+              "            file.lastModifiedDate ? file.lastModifiedDate.toLocaleDateString() :\n",
+              "                                    'n/a'} - `));\n",
+              "    const percent = span('0% done');\n",
+              "    li.appendChild(percent);\n",
+              "\n",
+              "    outputElement.appendChild(li);\n",
+              "\n",
+              "    const fileDataPromise = new Promise((resolve) => {\n",
+              "      const reader = new FileReader();\n",
+              "      reader.onload = (e) => {\n",
+              "        resolve(e.target.result);\n",
+              "      };\n",
+              "      reader.readAsArrayBuffer(file);\n",
+              "    });\n",
+              "    // Wait for the data to be ready.\n",
+              "    let fileData = yield {\n",
+              "      promise: fileDataPromise,\n",
+              "      response: {\n",
+              "        action: 'continue',\n",
+              "      }\n",
+              "    };\n",
+              "\n",
+              "    // Use a chunked sending to avoid message size limits. See b/62115660.\n",
+              "    let position = 0;\n",
+              "    do {\n",
+              "      const length = Math.min(fileData.byteLength - position, MAX_PAYLOAD_SIZE);\n",
+              "      const chunk = new Uint8Array(fileData, position, length);\n",
+              "      position += length;\n",
+              "\n",
+              "      const base64 = btoa(String.fromCharCode.apply(null, chunk));\n",
+              "      yield {\n",
+              "        response: {\n",
+              "          action: 'append',\n",
+              "          file: file.name,\n",
+              "          data: base64,\n",
+              "        },\n",
+              "      };\n",
+              "\n",
+              "      let percentDone = fileData.byteLength === 0 ?\n",
+              "          100 :\n",
+              "          Math.round((position / fileData.byteLength) * 100);\n",
+              "      percent.textContent = `${percentDone}% done`;\n",
+              "\n",
+              "    } while (position < fileData.byteLength);\n",
+              "  }\n",
+              "\n",
+              "  // All done.\n",
+              "  yield {\n",
+              "    response: {\n",
+              "      action: 'complete',\n",
+              "    }\n",
+              "  };\n",
+              "}\n",
+              "\n",
+              "scope.google = scope.google || {};\n",
+              "scope.google.colab = scope.google.colab || {};\n",
+              "scope.google.colab._files = {\n",
+              "  _uploadFiles,\n",
+              "  _uploadFilesContinue,\n",
+              "};\n",
+              "})(self);\n",
+              "</script> "
+            ]
+          },
+          "metadata": {}
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Saving 01-04T184148_000_mode1.csv to 01-04T184148_000_mode1.csv\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "ffd946d0",
+        "outputId": "13552e17-831e-438b-bfab-4d4e637e6a30"
+      },
+      "source": [
+        "print(df.columns)"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Index(['timestamp', 'pCut::Motor_Torque',\n",
+            "       'pCut::CTRL_Position_controller::Lag_error',\n",
+            "       'pCut::CTRL_Position_controller::Actual_position',\n",
+            "       'pCut::CTRL_Position_controller::Actual_speed',\n",
+            "       'pSvolFilm::CTRL_Position_controller::Actual_position',\n",
+            "       'pSvolFilm::CTRL_Position_controller::Actual_speed',\n",
+            "       'pSvolFilm::CTRL_Position_controller::Lag_error',\n",
+            "       'pSpintor::VAX_speed'],\n",
+            "      dtype='object')\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# FUNÇÃO DE MÉTRICAS\n",
+        "def metricas(y_true, y_pred):\n",
+        "    rmse = np.sqrt(mean_squared_error(y_true, y_pred))\n",
+        "    mae = mean_absolute_error(y_true, y_pred)\n",
+        "    r2 = r2_score(y_true, y_pred)\n",
+        "    return rmse, mae, r2"
+      ],
+      "metadata": {
+        "id": "fnhZogiE5BCz"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        " #FUNÇÃO OBJETIVO (Optuna)\n",
+        "\n",
+        "def criar_modelo(trial):\n",
+        "\n",
+        "    n_camadas = trial.suggest_int(\"n_camadas\", 1, 5)\n",
+        "    n_neuronios = trial.suggest_int(\"n_neuronios\", 32, 256)\n",
+        "    dropout_rate = trial.suggest_float(\"dropout\", 0.0, 0.5)\n",
+        "\n",
+        "    ativacao = trial.suggest_categorical(\n",
+        "        \"ativacao\", [\"relu\", \"tanh\", \"elu\"]\n",
+        "    )\n",
+        "\n",
+        "    learning_rate = trial.suggest_float(\n",
+        "        \"lr\", 1e-5, 1e-2, log=True\n",
+        "    )\n",
+        "\n",
+        "    modelo = keras.Sequential()\n",
+        "\n",
+        "    for _ in range(n_camadas):\n",
+        "        modelo.add(layers.Dense(n_neuronios, activation=ativacao))\n",
+        "        modelo.add(layers.Dropout(dropout_rate))\n",
+        "\n",
+        "    modelo.add(layers.Dense(1))  # saída\n",
+        "\n",
+        "    otimizador = keras.optimizers.Adam(learning_rate=learning_rate)\n",
+        "\n",
+        "    modelo.compile(\n",
+        "        loss=\"mse\",\n",
+        "        optimizer=otimizador,\n",
+        "        metrics=[\"mae\"]\n",
+        "    )\n",
+        "\n",
+        "    return modelo\n",
+        "\n",
+        "\n",
+        "def objetivo(trial):\n",
+        "    modelo = criar_modelo(trial)\n",
+        "\n",
+        "    early = keras.callbacks.EarlyStopping(\n",
+        "        patience=20, restore_best_weights=True\n",
+        "    )\n",
+        "\n",
+        "    modelo.fit(\n",
+        "        X_train, y_train,\n",
+        "        validation_split=0.2,\n",
+        "        epochs=200,\n",
+        "        batch_size=trial.suggest_int(\"batch_size\", 16, 128),\n",
+        "        callbacks=[early],\n",
+        "        verbose=0\n",
+        "    )\n",
+        "\n",
+        "    pred = modelo.predict(X_test).flatten()\n",
+        "    rmse, _, _ = metricas(y_test, pred)\n",
+        "\n",
+        "    return rmse"
+      ],
+      "metadata": {
+        "id": "Sm9KJrB75FvG"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# RODAR OPTUNA\n",
+        "study = optuna.create_study(direction=\"minimize\")\n",
+        "study.optimize(objetivo, n_trials=40)\n",
+        "\n",
+        "print(\"Melhores hiperparâmetros:\", study.best_params)\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "zuH9zDcn5RHc",
+        "outputId": "6e361a64-1b8b-4c69-daa3-e4eb34764123"
+      },
+      "execution_count": 14,
+      "outputs": [
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 03:56:23,041] A new study created in memory with name: no-name-ef91904c-f587-4e29-8bbd-d327946c6e2e\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 4ms/step \n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 03:56:29,095] Trial 0 finished with value: 7330.4035585788 and parameters: {'n_camadas': 1, 'n_neuronios': 253, 'dropout': 0.2574175464171564, 'ativacao': 'relu', 'lr': 0.00015264262213275694, 'batch_size': 125}. Best is trial 0 with value: 7330.4035585788.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 5ms/step \n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 03:56:37,285] Trial 1 finished with value: 12103.30666452562 and parameters: {'n_camadas': 2, 'n_neuronios': 114, 'dropout': 0.27764969588804017, 'ativacao': 'relu', 'lr': 0.0001867916337795491, 'batch_size': 46}. Best is trial 0 with value: 7330.4035585788.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 5ms/step \n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 03:56:46,649] Trial 2 finished with value: 0.5395143978056955 and parameters: {'n_camadas': 2, 'n_neuronios': 201, 'dropout': 0.25703184167961346, 'ativacao': 'tanh', 'lr': 0.0010462185661795726, 'batch_size': 126}. Best is trial 2 with value: 0.5395143978056955.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 10ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 03:57:00,996] Trial 3 finished with value: 13879.37685487847 and parameters: {'n_camadas': 4, 'n_neuronios': 197, 'dropout': 0.06580953733294775, 'ativacao': 'elu', 'lr': 5.591056855825863e-05, 'batch_size': 80}. Best is trial 2 with value: 0.5395143978056955.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 6ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 03:57:13,533] Trial 4 finished with value: 174231.54130689817 and parameters: {'n_camadas': 3, 'n_neuronios': 226, 'dropout': 0.29025732626830886, 'ativacao': 'elu', 'lr': 0.00011377453717786243, 'batch_size': 37}. Best is trial 2 with value: 0.5395143978056955.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 5ms/step \n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 03:57:25,527] Trial 5 finished with value: 0.5378024063038849 and parameters: {'n_camadas': 1, 'n_neuronios': 209, 'dropout': 0.337186956366614, 'ativacao': 'tanh', 'lr': 0.002952786889030835, 'batch_size': 50}. Best is trial 5 with value: 0.5378024063038849.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 5ms/step \n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 03:57:40,170] Trial 6 finished with value: 21986.88508151686 and parameters: {'n_camadas': 1, 'n_neuronios': 83, 'dropout': 0.05496916381864869, 'ativacao': 'relu', 'lr': 5.00532521864916e-05, 'batch_size': 91}. Best is trial 5 with value: 0.5378024063038849.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 10ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 03:57:53,887] Trial 7 finished with value: 4355.315799851503 and parameters: {'n_camadas': 4, 'n_neuronios': 186, 'dropout': 0.034803710435066804, 'ativacao': 'elu', 'lr': 0.0005539508402531287, 'batch_size': 39}. Best is trial 5 with value: 0.5378024063038849.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 7ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 03:58:04,230] Trial 8 finished with value: 42686.75767100883 and parameters: {'n_camadas': 4, 'n_neuronios': 42, 'dropout': 0.4766150496263145, 'ativacao': 'relu', 'lr': 9.805969423461544e-05, 'batch_size': 121}. Best is trial 5 with value: 0.5378024063038849.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 5ms/step \n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 03:58:23,462] Trial 9 finished with value: 1442.4155899067098 and parameters: {'n_camadas': 2, 'n_neuronios': 171, 'dropout': 0.044825293229352525, 'ativacao': 'elu', 'lr': 0.0009367530733947821, 'batch_size': 104}. Best is trial 5 with value: 0.5378024063038849.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 7ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 03:58:38,054] Trial 10 finished with value: 0.5379239984195158 and parameters: {'n_camadas': 5, 'n_neuronios': 129, 'dropout': 0.41428049441948706, 'ativacao': 'tanh', 'lr': 0.008238529881396162, 'batch_size': 16}. Best is trial 5 with value: 0.5378024063038849.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 03:58:53,078] Trial 11 finished with value: 0.5377495922412686 and parameters: {'n_camadas': 5, 'n_neuronios': 133, 'dropout': 0.4489700858447211, 'ativacao': 'tanh', 'lr': 0.008024347468724203, 'batch_size': 21}. Best is trial 11 with value: 0.5377495922412686.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 03:59:02,216] Trial 12 finished with value: 0.5377274681678337 and parameters: {'n_camadas': 5, 'n_neuronios': 140, 'dropout': 0.3957598298656548, 'ativacao': 'tanh', 'lr': 0.009240587870945323, 'batch_size': 64}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 7ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 03:59:12,723] Trial 13 finished with value: 0.5378010237856882 and parameters: {'n_camadas': 5, 'n_neuronios': 154, 'dropout': 0.4034909759225278, 'ativacao': 'tanh', 'lr': 1.1061010370077824e-05, 'batch_size': 64}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 7ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 03:59:22,818] Trial 14 finished with value: 0.5379060288694899 and parameters: {'n_camadas': 5, 'n_neuronios': 94, 'dropout': 0.16262380827237, 'ativacao': 'tanh', 'lr': 0.009647394613729335, 'batch_size': 19}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m1s\u001b[0m 52ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 03:59:29,906] Trial 15 finished with value: 0.5377277951183005 and parameters: {'n_camadas': 4, 'n_neuronios': 138, 'dropout': 0.48735478368782026, 'ativacao': 'tanh', 'lr': 0.0035771725703212043, 'batch_size': 66}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 7ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 03:59:36,699] Trial 16 finished with value: 0.5378072113065044 and parameters: {'n_camadas': 4, 'n_neuronios': 66, 'dropout': 0.4966181949867107, 'ativacao': 'tanh', 'lr': 0.002732033533619787, 'batch_size': 65}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 6ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 03:59:50,763] Trial 17 finished with value: 0.5377971441420552 and parameters: {'n_camadas': 3, 'n_neuronios': 164, 'dropout': 0.38570309384560664, 'ativacao': 'tanh', 'lr': 0.002905012778625762, 'batch_size': 82}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 04:00:01,250] Trial 18 finished with value: 0.5378408617397196 and parameters: {'n_camadas': 4, 'n_neuronios': 109, 'dropout': 0.18083826630766026, 'ativacao': 'tanh', 'lr': 0.003928193814261834, 'batch_size': 56}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 11ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 04:00:11,508] Trial 19 finished with value: 0.5378633587853361 and parameters: {'n_camadas': 5, 'n_neuronios': 141, 'dropout': 0.3583819331264869, 'ativacao': 'tanh', 'lr': 0.0012647758542370868, 'batch_size': 100}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 6ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 04:00:19,823] Trial 20 finished with value: 0.5378352164211696 and parameters: {'n_camadas': 3, 'n_neuronios': 61, 'dropout': 0.448465704920324, 'ativacao': 'tanh', 'lr': 0.0005228581403919484, 'batch_size': 72}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 7ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 04:00:30,691] Trial 21 finished with value: 0.5377276614161791 and parameters: {'n_camadas': 5, 'n_neuronios': 131, 'dropout': 0.44435737664381936, 'ativacao': 'tanh', 'lr': 0.005685446597103674, 'batch_size': 28}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 7ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 04:00:41,720] Trial 22 finished with value: 0.538059728999804 and parameters: {'n_camadas': 5, 'n_neuronios': 118, 'dropout': 0.32838613453817467, 'ativacao': 'tanh', 'lr': 0.005385292827046857, 'batch_size': 30}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 7ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 04:00:52,802] Trial 23 finished with value: 0.5377983328282844 and parameters: {'n_camadas': 4, 'n_neuronios': 145, 'dropout': 0.4432285644648594, 'ativacao': 'tanh', 'lr': 0.0021210714202497005, 'batch_size': 58}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 10ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 04:01:00,635] Trial 24 finished with value: 0.5378011789468831 and parameters: {'n_camadas': 5, 'n_neuronios': 92, 'dropout': 0.4986578786396333, 'ativacao': 'tanh', 'lr': 0.005613226835978456, 'batch_size': 76}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 7ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 04:01:13,527] Trial 25 finished with value: 0.5377408083090106 and parameters: {'n_camadas': 4, 'n_neuronios': 175, 'dropout': 0.3821332096272946, 'ativacao': 'tanh', 'lr': 0.0015142462322362662, 'batch_size': 31}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 7ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 04:01:25,808] Trial 26 finished with value: 0.5378242656477898 and parameters: {'n_camadas': 5, 'n_neuronios': 163, 'dropout': 0.42041391614307233, 'ativacao': 'tanh', 'lr': 0.004402343253569714, 'batch_size': 44}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 6ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 04:01:32,928] Trial 27 finished with value: 0.5378079742187173 and parameters: {'n_camadas': 3, 'n_neuronios': 126, 'dropout': 0.19493943243104314, 'ativacao': 'tanh', 'lr': 0.0097970146701971, 'batch_size': 90}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 11ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 04:01:49,738] Trial 28 finished with value: 0.6915535811272309 and parameters: {'n_camadas': 4, 'n_neuronios': 151, 'dropout': 0.4645051830719983, 'ativacao': 'elu', 'lr': 0.0018765734528670714, 'batch_size': 55}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 7ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 04:01:56,572] Trial 29 finished with value: 108158.3789311336 and parameters: {'n_camadas': 5, 'n_neuronios': 103, 'dropout': 0.33247475386300573, 'ativacao': 'relu', 'lr': 0.00044179661065509593, 'batch_size': 65}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 04:02:08,804] Trial 30 finished with value: 90.79590368340489 and parameters: {'n_camadas': 5, 'n_neuronios': 248, 'dropout': 0.36562435094199286, 'ativacao': 'relu', 'lr': 0.005094377470508092, 'batch_size': 115}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 12ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 04:02:25,525] Trial 31 finished with value: 0.53787410799068 and parameters: {'n_camadas': 4, 'n_neuronios': 179, 'dropout': 0.3897301932794792, 'ativacao': 'tanh', 'lr': 0.0015948200890281868, 'batch_size': 28}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 7ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 04:02:42,271] Trial 32 finished with value: 0.5378037412061154 and parameters: {'n_camadas': 4, 'n_neuronios': 140, 'dropout': 0.42922426384178536, 'ativacao': 'tanh', 'lr': 0.003873862073686688, 'batch_size': 31}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 04:02:56,845] Trial 33 finished with value: 0.537786414130693 and parameters: {'n_camadas': 3, 'n_neuronios': 188, 'dropout': 0.30534131296355205, 'ativacao': 'tanh', 'lr': 0.0009688148149924486, 'batch_size': 47}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 7ms/step\n"
+          ]
+        },
+        {
+          "metadata": {
+            "tags": null
+          },
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "[I 2025-11-30 04:03:08,851] Trial 34 finished with value: 0.5377616368820775 and parameters: {'n_camadas': 4, 'n_neuronios': 214, 'dropout': 0.22881974065969723, 'ativacao': 'tanh', 'lr': 0.006937228955293951, 'batch_size': 38}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "[I 2025-11-30 04:03:26,358] Trial 35 finished with value: 0.5377523950617326 and parameters: {'n_camadas': 5, 'n_neuronios': 118, 'dropout': 0.47231930787246934, 'ativacao': 'tanh', 'lr': 0.0002625074141374636, 'batch_size': 28}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 6ms/step \n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "[I 2025-11-30 04:03:32,971] Trial 36 finished with value: 0.537786656687603 and parameters: {'n_camadas': 2, 'n_neuronios': 159, 'dropout': 0.114241824692763, 'ativacao': 'tanh', 'lr': 0.0025130344474407107, 'batch_size': 70}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 7ms/step\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "[I 2025-11-30 04:03:42,374] Trial 37 finished with value: 10429.800831527082 and parameters: {'n_camadas': 4, 'n_neuronios': 175, 'dropout': 0.3680147809153927, 'ativacao': 'elu', 'lr': 0.0007110977707534586, 'batch_size': 51}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 6ms/step\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "[I 2025-11-30 04:04:00,137] Trial 38 finished with value: 99.16132381922333 and parameters: {'n_camadas': 3, 'n_neuronios': 203, 'dropout': 0.26687442217572016, 'ativacao': 'relu', 'lr': 0.0039990019156662705, 'batch_size': 35}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 10ms/step\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "[I 2025-11-30 04:04:15,687] Trial 39 finished with value: 0.5377397267655049 and parameters: {'n_camadas': 4, 'n_neuronios': 189, 'dropout': 0.2965405611658751, 'ativacao': 'tanh', 'lr': 0.0016197449765210934, 'batch_size': 43}. Best is trial 12 with value: 0.5377274681678337.\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Melhores hiperparâmetros: {'n_camadas': 5, 'n_neuronios': 140, 'dropout': 0.3957598298656548, 'ativacao': 'tanh', 'lr': 0.009240587870945323, 'batch_size': 64}\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "9-FYm9Pn4iah"
+      },
+      "source": [
+        "df = pd.read_csv(\"01-04T184148_000_mode1.csv\")  # substitua pelo seu dataset\n",
+        "TARGET_COLUMN = 'pCut::Motor_Torque'\n",
+        "X = df.drop(TARGET_COLUMN, axis=1).values\n",
+        "y = df[TARGET_COLUMN].values\n",
+        "\n",
+        "X_train, X_test, y_train, y_test = train_test_split(\n",
+        "    X, y, test_size=0.2, random_state=42\n",
+        ")"
+      ],
+      "execution_count": 16,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# TREINAR O MELHOR MODELO\n",
+        "best_model = criar_modelo(study.best_trial)\n",
+        "\n",
+        "early = keras.callbacks.EarlyStopping(\n",
+        "    patience=20,\n",
+        "    restore_best_weights=True\n",
+        ")\n",
+        "\n",
+        "best_model.fit(\n",
+        "    X_train, y_train,\n",
+        "    validation_split=0.2,\n",
+        "    epochs=300,\n",
+        "    batch_size=study.best_params[\"batch_size\"],\n",
+        "    callbacks=[early],\n",
+        "    verbose=1\n",
+        ")\n",
+        "\n",
+        "y_pred = best_model.predict(X_test).flatten()\n",
+        "\n",
+        "rmse, mae, r2 = metricas(y_test, y_pred)\n",
+        "print(\"RMSE:\", rmse)\n",
+        "print(\"MAE :\", mae)\n",
+        "print(\"R2  :\", r2)"
+      ],
+      "metadata": {
+        "id": "2ztiDYui5-K7",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "86acfa8f-87d3-4a98-d47a-5e1e1c3ef3e3"
+      },
+      "execution_count": 15,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Epoch 1/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m3s\u001b[0m 18ms/step - loss: 2.7881 - mae: 1.2870 - val_loss: 0.5373 - val_mae: 0.6325\n",
+            "Epoch 2/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.4787 - mae: 0.5451 - val_loss: 0.2240 - val_mae: 0.3446\n",
+            "Epoch 3/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.3827 - mae: 0.4431 - val_loss: 0.1895 - val_mae: 0.3048\n",
+            "Epoch 4/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2835 - mae: 0.3800 - val_loss: 0.1948 - val_mae: 0.3104\n",
+            "Epoch 5/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.3070 - mae: 0.3775 - val_loss: 0.1881 - val_mae: 0.3039\n",
+            "Epoch 6/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2701 - mae: 0.3631 - val_loss: 0.1867 - val_mae: 0.3049\n",
+            "Epoch 7/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 10ms/step - loss: 0.2402 - mae: 0.3362 - val_loss: 0.2018 - val_mae: 0.3184\n",
+            "Epoch 8/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2571 - mae: 0.3492 - val_loss: 0.2339 - val_mae: 0.3561\n",
+            "Epoch 9/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2350 - mae: 0.3403 - val_loss: 0.1906 - val_mae: 0.3222\n",
+            "Epoch 10/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2284 - mae: 0.3452 - val_loss: 0.1974 - val_mae: 0.3134\n",
+            "Epoch 11/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.3208 - mae: 0.3798 - val_loss: 0.2115 - val_mae: 0.3568\n",
+            "Epoch 12/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2933 - mae: 0.3757 - val_loss: 0.1915 - val_mae: 0.3243\n",
+            "Epoch 13/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2589 - mae: 0.3524 - val_loss: 0.2048 - val_mae: 0.3220\n",
+            "Epoch 14/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.2028 - mae: 0.3387 - val_loss: 0.1871 - val_mae: 0.3041\n",
+            "Epoch 15/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2134 - mae: 0.3326 - val_loss: 0.1868 - val_mae: 0.3097\n",
+            "Epoch 16/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2657 - mae: 0.3523 - val_loss: 0.2258 - val_mae: 0.3467\n",
+            "Epoch 17/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2439 - mae: 0.3699 - val_loss: 0.1905 - val_mae: 0.3219\n",
+            "Epoch 18/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2411 - mae: 0.3485 - val_loss: 0.1867 - val_mae: 0.3084\n",
+            "Epoch 19/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.2472 - mae: 0.3525 - val_loss: 0.1965 - val_mae: 0.3348\n",
+            "Epoch 20/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2407 - mae: 0.3570 - val_loss: 0.1867 - val_mae: 0.3049\n",
+            "Epoch 21/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.2548 - mae: 0.3591 - val_loss: 0.2744 - val_mae: 0.4145\n",
+            "Epoch 22/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.3197 - mae: 0.3799 - val_loss: 0.1867 - val_mae: 0.3048\n",
+            "Epoch 23/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.3013 - mae: 0.3623 - val_loss: 0.1998 - val_mae: 0.3162\n",
+            "Epoch 24/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.2120 - mae: 0.3360 - val_loss: 0.2805 - val_mae: 0.4056\n",
+            "Epoch 25/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2420 - mae: 0.3644 - val_loss: 0.1916 - val_mae: 0.3246\n",
+            "Epoch 26/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.2461 - mae: 0.3534 - val_loss: 0.1932 - val_mae: 0.3086\n",
+            "Epoch 27/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.3423 - mae: 0.3822 - val_loss: 0.2433 - val_mae: 0.3666\n",
+            "Epoch 28/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2966 - mae: 0.3694 - val_loss: 0.1935 - val_mae: 0.3288\n",
+            "Epoch 29/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.2564 - mae: 0.3536 - val_loss: 0.2058 - val_mae: 0.3231\n",
+            "Epoch 30/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.2055 - mae: 0.3442 - val_loss: 0.3117 - val_mae: 0.4365\n",
+            "Epoch 31/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.3531 - mae: 0.4217 - val_loss: 0.1866 - val_mae: 0.3054\n",
+            "Epoch 32/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.2729 - mae: 0.3678 - val_loss: 0.2355 - val_mae: 0.3813\n",
+            "Epoch 33/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.2733 - mae: 0.3747 - val_loss: 0.1960 - val_mae: 0.3338\n",
+            "Epoch 34/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 10ms/step - loss: 0.2767 - mae: 0.3619 - val_loss: 0.2006 - val_mae: 0.3419\n",
+            "Epoch 35/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2876 - mae: 0.3613 - val_loss: 0.2152 - val_mae: 0.3341\n",
+            "Epoch 36/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.2416 - mae: 0.3426 - val_loss: 0.2466 - val_mae: 0.3911\n",
+            "Epoch 37/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.3039 - mae: 0.3920 - val_loss: 0.2158 - val_mae: 0.3348\n",
+            "Epoch 38/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2281 - mae: 0.3495 - val_loss: 0.2223 - val_mae: 0.3426\n",
+            "Epoch 39/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 15ms/step - loss: 0.3011 - mae: 0.3752 - val_loss: 0.2159 - val_mae: 0.3618\n",
+            "Epoch 40/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m1s\u001b[0m 12ms/step - loss: 0.2003 - mae: 0.3356 - val_loss: 0.1871 - val_mae: 0.3111\n",
+            "Epoch 41/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 13ms/step - loss: 0.2858 - mae: 0.3845 - val_loss: 0.3149 - val_mae: 0.4397\n",
+            "Epoch 42/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 13ms/step - loss: 0.2418 - mae: 0.3628 - val_loss: 0.2623 - val_mae: 0.4045\n",
+            "Epoch 43/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m1s\u001b[0m 11ms/step - loss: 0.2733 - mae: 0.3708 - val_loss: 0.2474 - val_mae: 0.3712\n",
+            "Epoch 44/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 10ms/step - loss: 0.2992 - mae: 0.3779 - val_loss: 0.1866 - val_mae: 0.3069\n",
+            "Epoch 45/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.2453 - mae: 0.3535 - val_loss: 0.1884 - val_mae: 0.3041\n",
+            "Epoch 46/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2700 - mae: 0.3710 - val_loss: 0.1887 - val_mae: 0.3172\n",
+            "Epoch 47/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2565 - mae: 0.3580 - val_loss: 0.1897 - val_mae: 0.3049\n",
+            "Epoch 48/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.2301 - mae: 0.3482 - val_loss: 0.1896 - val_mae: 0.3049\n",
+            "Epoch 49/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 10ms/step - loss: 0.2815 - mae: 0.3691 - val_loss: 0.2649 - val_mae: 0.4067\n",
+            "Epoch 50/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2818 - mae: 0.3801 - val_loss: 0.2562 - val_mae: 0.3993\n",
+            "Epoch 51/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2610 - mae: 0.3718 - val_loss: 0.1874 - val_mae: 0.3039\n",
+            "Epoch 52/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2615 - mae: 0.3693 - val_loss: 0.1983 - val_mae: 0.3380\n",
+            "Epoch 53/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2232 - mae: 0.3415 - val_loss: 0.1921 - val_mae: 0.3074\n",
+            "Epoch 54/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 10ms/step - loss: 0.2400 - mae: 0.3627 - val_loss: 0.2056 - val_mae: 0.3228\n",
+            "Epoch 55/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 11ms/step - loss: 0.2857 - mae: 0.3838 - val_loss: 0.2110 - val_mae: 0.3292\n",
+            "Epoch 56/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2397 - mae: 0.3502 - val_loss: 0.1873 - val_mae: 0.3039\n",
+            "Epoch 57/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2845 - mae: 0.3689 - val_loss: 0.1869 - val_mae: 0.3043\n",
+            "Epoch 58/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.2653 - mae: 0.3625 - val_loss: 0.2602 - val_mae: 0.3848\n",
+            "Epoch 59/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.3142 - mae: 0.4215 - val_loss: 0.1874 - val_mae: 0.3039\n",
+            "Epoch 60/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2965 - mae: 0.3763 - val_loss: 0.1922 - val_mae: 0.3075\n",
+            "Epoch 61/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2818 - mae: 0.3775 - val_loss: 0.1872 - val_mae: 0.3040\n",
+            "Epoch 62/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2149 - mae: 0.3384 - val_loss: 0.1866 - val_mae: 0.3067\n",
+            "Epoch 63/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 10ms/step - loss: 0.2901 - mae: 0.3754 - val_loss: 0.1898 - val_mae: 0.3200\n",
+            "Epoch 64/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2452 - mae: 0.3706 - val_loss: 0.1902 - val_mae: 0.3212\n",
+            "Epoch 65/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2461 - mae: 0.3616 - val_loss: 0.1875 - val_mae: 0.3038\n",
+            "Epoch 66/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2994 - mae: 0.3632 - val_loss: 0.1873 - val_mae: 0.3120\n",
+            "Epoch 67/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.3025 - mae: 0.3904 - val_loss: 0.1871 - val_mae: 0.3113\n",
+            "Epoch 68/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 10ms/step - loss: 0.2628 - mae: 0.3798 - val_loss: 0.1914 - val_mae: 0.3242\n",
+            "Epoch 69/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.2742 - mae: 0.3919 - val_loss: 0.2557 - val_mae: 0.3989\n",
+            "Epoch 70/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.3254 - mae: 0.3822 - val_loss: 0.1910 - val_mae: 0.3233\n",
+            "Epoch 71/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2723 - mae: 0.3622 - val_loss: 0.1992 - val_mae: 0.3397\n",
+            "Epoch 72/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.2878 - mae: 0.3985 - val_loss: 0.1884 - val_mae: 0.3041\n",
+            "Epoch 73/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.2891 - mae: 0.3702 - val_loss: 0.1892 - val_mae: 0.3185\n",
+            "Epoch 74/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.2208 - mae: 0.3455 - val_loss: 0.2232 - val_mae: 0.3436\n",
+            "Epoch 75/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.2585 - mae: 0.3614 - val_loss: 0.1890 - val_mae: 0.3044\n",
+            "Epoch 76/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.2221 - mae: 0.3537 - val_loss: 0.1872 - val_mae: 0.3115\n",
+            "Epoch 77/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.2448 - mae: 0.3564 - val_loss: 0.1993 - val_mae: 0.3156\n",
+            "Epoch 78/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.2504 - mae: 0.3725 - val_loss: 0.1873 - val_mae: 0.3122\n",
+            "Epoch 79/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 9ms/step - loss: 0.2853 - mae: 0.3676 - val_loss: 0.2590 - val_mae: 0.3836\n",
+            "Epoch 80/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step - loss: 0.2650 - mae: 0.3819 - val_loss: 0.1972 - val_mae: 0.3133\n",
+            "Epoch 81/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 10ms/step - loss: 0.2218 - mae: 0.3484 - val_loss: 0.1875 - val_mae: 0.3128\n",
+            "Epoch 82/300\n",
+            "\u001b[1m21/21\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 10ms/step - loss: 0.2960 - mae: 0.3943 - val_loss: 0.2064 - val_mae: 0.3504\n",
+            "\u001b[1m13/13\u001b[0m \u001b[32m━━━━━━━━━━━━━━━━━━━━\u001b[0m\u001b[37m\u001b[0m \u001b[1m0s\u001b[0m 8ms/step\n",
+            "RMSE: 0.5377978709442248\n",
+            "MAE : 0.34781986638233914\n",
+            "R2  : -0.0002619782870030285\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "71cf6143"
+      },
+      "source": [
+        "Please review the output above and let me know which column you intend to use as the `target` variable. Once you provide the correct column name, I can update the code to fix the error."
+      ]
+    }
+  ]
+}
